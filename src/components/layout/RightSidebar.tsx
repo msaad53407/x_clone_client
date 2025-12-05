@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -5,6 +7,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function RightSidebar() {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchQuery.trim()) {
+        navigate(`/explore?q=${encodeURIComponent(searchQuery)}`);
+      }
+    }
+  };
+
   const whoToFollow = [
     { name: 'React', handle: '@reactjs', avatar: 'https://github.com/reactjs.png' },
     { name: 'Next.js', handle: '@nextjs', avatar: 'https://github.com/vercel.png' },
@@ -18,6 +32,9 @@ export function RightSidebar() {
         <Input
           placeholder="Search"
           className="pl-10 rounded-full bg-neutral-100 dark:bg-neutral-900 border-none focus-visible:ring-blue-500"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
       </div>
 

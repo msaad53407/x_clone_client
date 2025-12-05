@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { Home, Search, User, MoreHorizontal, LogOut, Moon, Sun, Laptop } from 'lucide-react';
+import { Home, Search, User, MoreHorizontal, LogOut, Moon, Sun, Laptop, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ export function LeftSidebar() {
   const navItems = [
     { icon: Home, label: 'Home', path: '/home' },
     { icon: Search, label: 'Explore', path: '/explore' }, // Using Explore for Search as per X UI
+    { icon: Bookmark, label: 'Saved', path: '/saved' },
     { icon: User, label: 'Profile', path: '/profile' }
   ];
 
@@ -82,12 +83,14 @@ export function LeftSidebar() {
           <DropdownMenuContent className="w-60" align="end" side="top">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+            <DropdownMenuItem asChild>
+              <Link to="/profile">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger className="cursor-pointer">
                 <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span>Theme</span>

@@ -42,7 +42,6 @@ export default function ProfilePage() {
           comments={55}
           reposts={70}
           likes={100}
-          views="145"
         />
         <PostCard
           avatar="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop"
@@ -53,7 +52,6 @@ export default function ProfilePage() {
           comments={12}
           reposts={5}
           likes={89}
-          views="1.2k"
         />
         <PostCard
           avatar="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop"
@@ -64,7 +62,6 @@ export default function ProfilePage() {
           comments={34}
           reposts={12}
           likes={256}
-          views="5k"
         />
       </div>
     </div>
