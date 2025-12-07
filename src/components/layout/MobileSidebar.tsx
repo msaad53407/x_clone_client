@@ -1,11 +1,11 @@
-import { Link, useLocation, useNavigate } from 'react-router';
-import { User, Bookmark, LogOut, Moon, Sun, Laptop } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useTheme } from '../theme/theme-provider';
-import { SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
+import { Bookmark, Laptop, LogOut, Moon, Sun, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { useTheme } from '../theme/theme-provider';
 
 export function MobileSidebar() {
   const { setTheme } = useTheme();
@@ -37,16 +37,6 @@ export function MobileSidebar() {
           <div>
             <p className="font-bold text-lg">{user?.display_name || user?.username || 'User'}</p>
             <p className="text-neutral-500">@{user?.username || 'user'}</p>
-          </div>
-          <div className="flex gap-4 mt-2 text-sm">
-            <p>
-              <span className="font-bold">{user?.following_count || 0}</span>{' '}
-              <span className="text-neutral-500">Following</span>
-            </p>
-            <p>
-              <span className="font-bold">{user?.followers_count || 0}</span>{' '}
-              <span className="text-neutral-500">Followers</span>
-            </p>
           </div>
         </div>
       </SheetHeader>
