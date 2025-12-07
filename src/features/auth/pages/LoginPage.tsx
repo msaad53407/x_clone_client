@@ -28,7 +28,7 @@ export default function LoginPage() {
   // Now we can have conditional returns
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white">
         <div className="animate-pulse">Loading...</div>
       </div>
     );
@@ -53,18 +53,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
-      <Card className="w-full max-w-md bg-black border-neutral-800 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white p-4">
+      <Card className="w-full max-w-md bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-black dark:text-white">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-black fill-current">
+          <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-white dark:text-black fill-current">
               <g>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
               </g>
             </svg>
           </div>
           <CardTitle className="text-2xl font-bold">Sign in to X</CardTitle>
-          <CardDescription className="text-neutral-400">Welcome back.</CardDescription>
+          <CardDescription className="text-neutral-500 dark:text-neutral-400">Welcome back.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -79,7 +79,7 @@ export default function LoginPage() {
                       <Input
                         placeholder="john@example.com"
                         {...field}
-                        className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -99,7 +99,7 @@ export default function LoginPage() {
                         type="password"
                         placeholder="••••••••"
                         {...field}
-                        className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -110,7 +110,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Signing in...' : 'Log in'}

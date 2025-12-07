@@ -42,18 +42,18 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
-      <Card className="w-full max-w-md bg-black border-neutral-800 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white p-4">
+      <Card className="w-full max-w-md bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-black dark:text-white">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-black fill-current">
+          <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-white dark:text-black fill-current">
               <g>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
               </g>
             </svg>
           </div>
           <CardTitle className="text-2xl font-bold">Find your X account</CardTitle>
-          <CardDescription className="text-neutral-400">
+          <CardDescription className="text-neutral-500 dark:text-neutral-400">
             {emailSent
               ? 'Check your email for the password reset link.'
               : 'Enter your email to receive a password reset link.'}
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
                         <Input
                           placeholder="john@example.com"
                           {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                          className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
                 />
                 <Button
                   type="submit"
-                  className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                  className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Sending...' : 'Send Reset Link'}
@@ -92,9 +92,9 @@ export default function ForgotPasswordPage() {
             </Form>
           ) : (
             <div className="space-y-4 text-center">
-              <p className="text-neutral-400">
+              <p className="text-neutral-500 dark:text-neutral-400">
                 We've sent a password reset link to{' '}
-                <span className="text-white font-medium">{form.getValues('email')}</span>
+                <span className="text-black dark:text-white font-medium">{form.getValues('email')}</span>
               </p>
               <p className="text-sm text-neutral-500">
                 Click the link in the email to reset your password. The link will expire in 1 hour.
@@ -102,7 +102,7 @@ export default function ForgotPasswordPage() {
               <Button
                 onClick={() => setEmailSent(false)}
                 variant="outline"
-                className="w-full rounded-full border-neutral-700"
+                className="w-full rounded-full border-neutral-300 dark:border-neutral-700"
               >
                 Use different email
               </Button>

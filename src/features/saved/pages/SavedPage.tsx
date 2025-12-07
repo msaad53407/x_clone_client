@@ -1,56 +1,106 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostCard } from '@/features/home/components/PostCard';
+import { engagementService } from '@/features/home/services/engagement.service';
+import type { Tweet } from '@/types/api.types';
+import { Bookmark } from 'lucide-react';
 
 export default function SavedPage() {
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['bookmarks'],
+    queryFn: () => engagementService.getBookmarks({ page: 1, limit: 50 })
+  });
+
+  const refetchBookmarks = () => {
+    queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+  };
+
+  const bookmarks = data?.data || [];
+
   return (
     <div className="flex flex-col">
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex h-[53px] items-center px-4">
-          <h1 className="font-bold text-xl">Saved</h1>
+          <h1 className="font-bold text-xl">Bookmarks</h1>
         </div>
       </div>
-      <div>
-        <PostCard
-          avatar="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?q=80&w=1780&auto=format&fit=crop"
-          name="Elon Musk"
-          username="@elonmusk"
-          time="55m"
-          content="An immediate increase in the birth rate is needed"
-          comments={3100}
-          reposts={1200}
-          likes={8000}
-          quotedPost={{
-            avatar: 'https://pbs.twimg.com/profile_images/1683325380441128960/yRsRRjGO_400x400.jpg',
-            name: 'Tesla Owners Silicon Valley',
-            username: '@teslaownersSV',
-            time: '1h',
-            content:
-              'Birth rates are plummeting in a lot of countries. Population collapse is the greatest threat to civilization.\n\nChange needs to happen to save humanity.',
-            image: 'https://pbs.twimg.com/media/F4s_2qMXwAAyvK8?format=jpg&name=large'
-          }}
-        />
-        <PostCard
-          avatar="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop"
-          name="Alexandra Prado"
-          username="@Alexandra_chess"
-          time="12h"
-          content="This is a saved tweet without a quote."
-          comments={12}
-          reposts={5}
-          likes={89}
-          isOwner={true}
-        />
-        <PostCard
-          avatar="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=1887&auto=format&fit=crop"
-          name="John Doe"
-          username="@johndoe"
-          time="2h"
-          content="Just learned about the new features in React 19. Can't wait to try them out! #reactjs #webdev"
-          image="https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=2070&auto=format&fit=crop"
-          comments={15}
-          reposts={8}
-          likes={42}
-        />
-      </div>
+
+      {isLoading ? (
+        <div className="p-8 flex justify-center">
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="p-8 text-center text-neutral-500">
+          <p>Failed to load bookmarks. Please try again.</p>
+        </div>
+      ) : bookmarks.length === 0 ? (
+        <div className="p-12 text-center">
+          <div className="flex justify-center mb-4">
+            <Bookmark className="w-12 h-12 text-neutral-300 dark:text-neutral-700" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Save posts for later</h2>
+          <p className="text-neutral-500 max-w-sm mx-auto">Bookmark posts to easily find them again in the future.</p>
+        </div>
+      ) : (
+        <div>
+          {bookmarks.map((tweet: Tweet) => (
+            <PostCard
+              key={tweet.id}
+              id={tweet.id}
+              avatar={tweet.author.profile_image_url || 'https://github.com/shadcn.png'}
+              name={tweet.author.display_name || tweet.author.username}
+              username={`@${tweet.author.username}`}
+              authorId={tweet.author.id}
+              time={formatTimeAgo(tweet.created_at)}
+              content={tweet.content || ''}
+              image={tweet.image_url || undefined}
+              comments={tweet.comments_count}
+              likes={tweet.likes_count}
+              isLiked={tweet.is_liked}
+              isBookmarked={tweet.is_bookmarked}
+              quotedPost={
+                tweet.quoted_tweet
+                  ? {
+                      avatar: tweet.quoted_tweet.author.profile_image_url || 'https://github.com/shadcn.png',
+                      name: tweet.quoted_tweet.author.display_name || tweet.quoted_tweet.author.username,
+                      username: `@${tweet.quoted_tweet.author.username}`,
+                      time: formatTimeAgo(tweet.quoted_tweet.created_at),
+                      content: tweet.quoted_tweet.content || '',
+                      image: tweet.quoted_tweet.image_url || undefined
+                    }
+                  : undefined
+              }
+              onRefresh={refetchBookmarks}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
+}
+
+/**
+ * Format date to relative time (e.g., "5h", "2d", "Dec 1")
+ */
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) {
+    return `${diffSecs}s`;
+  } else if (diffMins < 60) {
+    return `${diffMins}m`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h`;
+  } else if (diffDays < 7) {
+    return `${diffDays}d`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
 }

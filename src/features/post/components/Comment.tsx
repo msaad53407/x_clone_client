@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreHorizontal, Trash2, Edit2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,6 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
 
 interface CommentProps {
   id: string;
@@ -29,9 +28,10 @@ interface CommentProps {
   username: string;
   time: string;
   content: string;
-  isOwner?: boolean; // Comment owner
-  isPostOwner?: boolean; // Post owner
+  isOwner?: boolean;
+  isPostOwner?: boolean;
   onDelete?: (id: string) => void;
+  onUpdate?: (id: string, content: string) => Promise<void>;
 }
 
 export function Comment({
@@ -43,25 +43,43 @@ export function Comment({
   content,
   isOwner = false,
   isPostOwner = false,
-  onDelete
+  onDelete,
+  onUpdate
 }: CommentProps) {
   const [isDeleted, setIsDeleted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [commentContent, setCommentContent] = useState(content);
   const [tempContent, setTempContent] = useState(content);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleSaveEdit = () => {
-    setCommentContent(tempContent);
-    setIsEditing(false);
-    toast.success('Comment updated successfully');
+  const handleSaveEdit = async () => {
+    if (!tempContent.trim()) return;
+
+    setIsUpdating(true);
+    try {
+      if (onUpdate) {
+        await onUpdate(id, tempContent.trim());
+      }
+      setCommentContent(tempContent);
+      setIsEditing(false);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleDelete = () => {
-    setIsDeleted(true);
-    setShowDeleteAlert(false);
-    toast.success('Comment deleted');
-    if (onDelete) onDelete(id);
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (onDelete) {
+        await onDelete(id);
+      }
+      setIsDeleted(true);
+      setShowDeleteAlert(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isDeleted) return null;
@@ -73,7 +91,7 @@ export function Comment({
       <div className="border-b border-neutral-200 dark:border-neutral-800 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors">
         <div className="flex gap-3">
           <Avatar className="w-10 h-10">
-            <AvatarImage src={avatar} />
+            <AvatarImage src={avatar} className="object-cover" />
             <AvatarFallback>{name[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -137,17 +155,27 @@ export function Comment({
               value={tempContent}
               onChange={e => setTempContent(e.target.value)}
               className="resize-none h-24 text-base"
+              disabled={isUpdating}
+              maxLength={280}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
+            <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isUpdating}>
               Cancel
             </Button>
             <Button
               onClick={handleSaveEdit}
+              disabled={!tempContent.trim() || isUpdating}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full"
             >
-              Save
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -160,9 +188,20 @@ export function Comment({
             <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-full">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

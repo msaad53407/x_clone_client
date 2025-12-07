@@ -4,10 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import EmojiPicker, { type EmojiClickData, Theme } from 'emoji-picker-react';
-import { Image, Smile, X } from 'lucide-react';
+import { Image, Loader2, Smile, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { tweetService } from '../services/tweet.service';
+import { uploadService } from '@/services/upload.service';
 import { getApiErrorMessage } from '@/types/api.types';
 
 export function CreatePost() {
@@ -16,8 +17,10 @@ export function CreatePost() {
   const [postContent, setPostContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
@@ -32,16 +35,16 @@ export function CreatePost() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setImageFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     }
   };
 
   const handleRemoveImage = () => {
     setImagePreview(null);
+    setImageFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -62,29 +65,40 @@ export function CreatePost() {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setImageFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     }
   };
 
   const handleSubmit = async () => {
-    if (!postContent.trim() && !imagePreview) return;
+    if (!postContent.trim() && !imageFile) return;
 
     setIsSubmitting(true);
     try {
-      // TODO: Upload image to Cloudinary first if imagePreview exists
-      // For now, we only submit the text content
+      let uploadedImageUrl: string | undefined;
+
+      // Upload image to Cloudinary if file exists
+      if (imageFile) {
+        setIsUploading(true);
+        try {
+          uploadedImageUrl = await uploadService.uploadTweetImage(imageFile);
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      // Create the tweet with uploaded image URL
       await tweetService.create({
-        content: postContent.trim() || undefined
-        // image_url: uploadedImageUrl, // Add after implementing image upload
+        content: postContent.trim() || undefined,
+        image_url: uploadedImageUrl
       });
 
       // Reset form
       setPostContent('');
       setImagePreview(null);
+      setImageFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -97,6 +111,7 @@ export function CreatePost() {
       toast.error(getApiErrorMessage(error));
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -135,12 +150,26 @@ export function CreatePost() {
               >
                 <X className="w-4 h-4" />
               </Button>
+              {isUploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-white">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Uploading...</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
             <div className="flex gap-1 text-blue-500 relative">
-              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <Button
                 variant="ghost"
                 size="icon"
@@ -169,10 +198,17 @@ export function CreatePost() {
             </div>
             <Button
               className="bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold px-4"
-              disabled={(!postContent.trim() && !imagePreview) || isSubmitting}
+              disabled={(!postContent.trim() && !imageFile) || isSubmitting}
               onClick={handleSubmit}
             >
-              {isSubmitting ? 'Posting...' : 'Post'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {isUploading ? 'Uploading...' : 'Posting...'}
+                </>
+              ) : (
+                'Post'
+              )}
             </Button>
           </div>
         </div>

@@ -34,11 +34,11 @@ export default function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
-      <Card className="w-full max-w-md bg-black border-neutral-800 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white p-4">
+      <Card className="w-full max-w-md bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-black dark:text-white">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-7 h-7 text-black fill-current">
+          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-7 h-7 text-white dark:text-black fill-current">
               <g>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
               </g>
@@ -55,13 +55,15 @@ export default function VerifyEmailPage() {
           {state === 'loading' && (
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              <p className="text-neutral-400">Please wait while we verify your email address...</p>
+              <p className="text-neutral-500 dark:text-neutral-400">
+                Please wait while we verify your email address...
+              </p>
             </div>
           )}
 
           {state === 'success' && (
             <div className="space-y-4">
-              <CardDescription className="text-neutral-400 text-base">
+              <CardDescription className="text-neutral-500 dark:text-neutral-400 text-base">
                 Your email has been verified successfully. You can now log in to your account.
               </CardDescription>
             </div>
@@ -69,7 +71,7 @@ export default function VerifyEmailPage() {
 
           {state === 'error' && (
             <div className="space-y-4">
-              <CardDescription className="text-red-400 text-base">
+              <CardDescription className="text-red-500 dark:text-red-400 text-base">
                 {errorMessage || 'The verification link is invalid or has expired.'}
               </CardDescription>
               <p className="text-neutral-500 text-sm">
@@ -80,7 +82,7 @@ export default function VerifyEmailPage() {
 
           {state === 'no-token' && (
             <div className="space-y-4">
-              <CardDescription className="text-yellow-400 text-base">
+              <CardDescription className="text-yellow-600 dark:text-yellow-400 text-base">
                 No verification token found in the URL.
               </CardDescription>
               <p className="text-neutral-500 text-sm">Please click the verification link from your email.</p>
@@ -89,15 +91,18 @@ export default function VerifyEmailPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           {state === 'success' ? (
-            <Button className="bg-white text-black hover:bg-neutral-200 rounded-full font-bold px-8" asChild>
+            <Button
+              className="bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold px-8"
+              asChild
+            >
               <Link to="/login">Log in to your account</Link>
             </Button>
           ) : state === 'error' || state === 'no-token' ? (
             <div className="flex gap-4">
-              <Button variant="outline" className="rounded-full border-neutral-700" asChild>
+              <Button variant="outline" className="rounded-full border-neutral-300 dark:border-neutral-700" asChild>
                 <Link to="/signup">Sign up again</Link>
               </Button>
-              <Button variant="outline" className="rounded-full border-neutral-700" asChild>
+              <Button variant="outline" className="rounded-full border-neutral-300 dark:border-neutral-700" asChild>
                 <Link to="/login">Go to login</Link>
               </Button>
             </div>

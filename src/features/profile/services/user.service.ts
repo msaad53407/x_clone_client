@@ -90,5 +90,15 @@ export const userService = {
       }
     });
     return response.data;
+  },
+
+  /**
+   * Get user suggestions for "Who to follow"
+   */
+  getSuggestions: async (limit = 3): Promise<UserPublic[]> => {
+    const response = await privateApi.get<UserPublic[]>('/users/suggestions/who-to-follow', {
+      params: { limit }
+    });
+    return response.data;
   }
 };

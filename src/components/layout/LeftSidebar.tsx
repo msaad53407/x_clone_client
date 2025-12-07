@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Home, Search, User, MoreHorizontal, LogOut, Moon, Sun, Laptop, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,17 +14,25 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from '../theme/theme-provider';
+import { useAuth } from '@/hooks/use-auth';
 
 export function LeftSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { setTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/home' },
-    { icon: Search, label: 'Explore', path: '/explore' }, // Using Explore for Search as per X UI
+    { icon: Search, label: 'Explore', path: '/explore' },
     { icon: Bookmark, label: 'Saved', path: '/saved' },
     { icon: User, label: 'Profile', path: '/profile' }
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="flex-col h-dvh p-4 w-[275px] hidden md:flex sticky top-0">
@@ -69,12 +77,12 @@ export function LeftSidebar() {
             >
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>CN</AvatarFallback>
+                  <AvatarImage src={user?.profile_image_url || undefined} className="object-cover" />
+                  <AvatarFallback>{user?.display_name?.[0] || user?.username?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden lg:block">
-                  <p className="font-bold text-sm">Shadcn</p>
-                  <p className="text-neutral-500 text-sm">@shadcn</p>
+                  <p className="font-bold text-sm">{user?.display_name || user?.username || 'User'}</p>
+                  <p className="text-neutral-500 text-sm">@{user?.username || 'user'}</p>
                 </div>
               </div>
               <MoreHorizontal className="w-5 h-5 hidden lg:block" />
@@ -111,7 +119,7 @@ export function LeftSidebar() {
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-500 focus:text-red-500">
+            <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

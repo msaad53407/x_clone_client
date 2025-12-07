@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { Search } from 'lucide-react';
+import { useNavigate, Link } from 'react-router';
+import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService } from '@/features/profile/services/user.service';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/types/api.types';
+import type { UserPublic } from '@/types/api.types';
 
 export function RightSidebar() {
   const navigate = useNavigate();
@@ -19,11 +24,12 @@ export function RightSidebar() {
     }
   };
 
-  const whoToFollow = [
-    { name: 'React', handle: '@reactjs', avatar: 'https://github.com/reactjs.png' },
-    { name: 'Next.js', handle: '@nextjs', avatar: 'https://github.com/vercel.png' },
-    { name: 'Shadcn', handle: '@shadcn', avatar: 'https://github.com/shadcn.png' }
-  ];
+  // Fetch user suggestions
+  const { data: suggestions = [], isLoading } = useQuery({
+    queryKey: ['userSuggestions'],
+    queryFn: () => userService.getSuggestions(3),
+    staleTime: 60000 // Cache for 1 minute
+  });
 
   return (
     <div className="hidden lg:flex flex-col w-[350px] p-4 h-full sticky top-0 space-y-4">
@@ -43,26 +49,15 @@ export function RightSidebar() {
           <CardTitle className="text-xl font-bold">Who to follow</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {whoToFollow.map(user => (
-            <div key={user.handle} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="text-sm">
-                  <p className="font-bold hover:underline cursor-pointer">{user.name}</p>
-                  <p className="text-neutral-500">{user.handle}</p>
-                </div>
-              </div>
-              <Button className="bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold h-8 px-4">
-                Follow
-              </Button>
+          {isLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
             </div>
-          ))}
-          <Button variant="link" className="text-blue-500 p-0 h-auto">
-            Show more
-          </Button>
+          ) : suggestions.length === 0 ? (
+            <p className="text-neutral-500 text-sm">No suggestions available</p>
+          ) : (
+            suggestions.map(user => <UserSuggestionItem key={user.id} user={user} />)
+          )}
         </CardContent>
       </Card>
 
@@ -70,11 +65,77 @@ export function RightSidebar() {
         <span>Terms of Service</span>
         <span>Privacy Policy</span>
         <span>Cookie Policy</span>
-        <span>Accessibility</span>
-        <span>Ads info</span>
-        <span>More ...</span>
         <span>© 2025 X Corp.</span>
       </div>
+    </div>
+  );
+}
+
+function UserSuggestionItem({ user }: { user: UserPublic }) {
+  const queryClient = useQueryClient();
+  const [isFollowing, setIsFollowing] = useState(user.is_following);
+
+  const followMutation = useMutation({
+    mutationFn: () => userService.follow(user.username),
+    onSuccess: () => {
+      setIsFollowing(true);
+      toast.success(`You are now following @${user.username}`);
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['userSuggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['user', user.username] });
+    },
+    onError: error => {
+      toast.error(getApiErrorMessage(error));
+    }
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: () => userService.unfollow(user.username),
+    onSuccess: () => {
+      setIsFollowing(false);
+      toast.success(`You have unfollowed @${user.username}`);
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['userSuggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['user', user.username] });
+    },
+    onError: error => {
+      toast.error(getApiErrorMessage(error));
+    }
+  });
+
+  const handleFollowToggle = () => {
+    if (isFollowing) {
+      unfollowMutation.mutate();
+    } else {
+      followMutation.mutate();
+    }
+  };
+
+  const isLoading = followMutation.isPending || unfollowMutation.isPending;
+
+  return (
+    <div className="flex items-center justify-between">
+      <Link to={`/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={user.profile_image_url || undefined} className="object-cover" />
+          <AvatarFallback>{(user.display_name || user.username)[0]?.toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="text-sm min-w-0">
+          <p className="font-bold hover:underline cursor-pointer truncate">{user.display_name || user.username}</p>
+          <p className="text-neutral-500 truncate">@{user.username}</p>
+        </div>
+      </Link>
+      <Button
+        onClick={handleFollowToggle}
+        disabled={isLoading}
+        className={
+          isFollowing
+            ? 'bg-transparent border border-neutral-300 dark:border-neutral-700 text-black dark:text-white hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/50 rounded-full font-bold h-8 px-4'
+            : 'bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold h-8 px-4'
+        }
+      >
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : isFollowing ? 'Following' : 'Follow'}
+      </Button>
     </div>
   );
 }

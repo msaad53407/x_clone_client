@@ -1,21 +1,26 @@
-import { Link } from 'react-router';
-import { User, Bookmark, List, Zap, Settings, HelpCircle, LogOut, Moon, Sun, Laptop } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { User, Bookmark, LogOut, Moon, Sun, Laptop } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '../theme/theme-provider';
-import { SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { useAuth } from '@/hooks/use-auth';
 
 export function MobileSidebar() {
   const { setTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const menuItems = [
     { icon: User, label: 'Profile', path: '/profile' },
-    { icon: Zap, label: 'Premium', path: '/premium' },
-    { icon: Bookmark, label: 'Bookmarks', path: '/bookmarks' },
-    { icon: List, label: 'Lists', path: '/lists' },
-    { icon: User, label: 'Communities', path: '/communities' } // Reusing User icon for now
+    { icon: Bookmark, label: 'Bookmarks', path: '/saved' }
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <SheetContent
@@ -26,19 +31,21 @@ export function MobileSidebar() {
         <SheetTitle className="sr-only">User Menu</SheetTitle>
         <div className="flex flex-col gap-2">
           <Avatar className="w-10 h-10">
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>CN</AvatarFallback>
+            <AvatarImage src={user?.profile_image_url || undefined} className="object-cover" />
+            <AvatarFallback>{user?.display_name?.[0] || user?.username?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-bold text-lg">Muhammad Saad 👨🏻‍💻</p>
-            <p className="text-neutral-500">@msaad_dev</p>
+            <p className="font-bold text-lg">{user?.display_name || user?.username || 'User'}</p>
+            <p className="text-neutral-500">@{user?.username || 'user'}</p>
           </div>
           <div className="flex gap-4 mt-2 text-sm">
             <p>
-              <span className="font-bold">4</span> <span className="text-neutral-500">Following</span>
+              <span className="font-bold">{user?.following_count || 0}</span>{' '}
+              <span className="text-neutral-500">Following</span>
             </p>
             <p>
-              <span className="font-bold">0</span> <span className="text-neutral-500">Followers</span>
+              <span className="font-bold">{user?.followers_count || 0}</span>{' '}
+              <span className="text-neutral-500">Followers</span>
             </p>
           </div>
         </div>
@@ -48,32 +55,30 @@ export function MobileSidebar() {
 
       <div className="flex flex-col py-2">
         {menuItems.map(item => (
-          <Link
-            key={item.label}
-            to={item.path}
-            className="flex items-center gap-4 px-4 py-3 text-xl font-bold hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
-          >
-            <item.icon className="w-6 h-6" />
-            <span>{item.label}</span>
-          </Link>
+          <SheetClose asChild key={item.label}>
+            <Link
+              to={item.path}
+              className="flex items-center gap-4 px-4 py-3 text-xl font-bold hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+            >
+              <item.icon className="w-6 h-6" />
+              <span>{item.label}</span>
+            </Link>
+          </SheetClose>
         ))}
       </div>
 
       <Separator className="bg-neutral-200 dark:bg-neutral-800" />
 
       <div className="flex flex-col py-2">
-        <div className="px-4 py-3 text-sm font-bold flex items-center gap-4 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors">
-          <Settings className="w-5 h-5" />
-          <span>Settings and privacy</span>
-        </div>
-        <div className="px-4 py-3 text-sm font-bold flex items-center gap-4 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors">
-          <HelpCircle className="w-5 h-5" />
-          <span>Help Center</span>
-        </div>
-        <div className="px-4 py-3 text-sm font-bold flex items-center gap-4 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors text-red-500">
-          <LogOut className="w-5 h-5" />
-          <span>Log out</span>
-        </div>
+        <SheetClose asChild>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-3 text-sm font-bold flex items-center gap-4 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors text-red-500 w-full text-left"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Log out</span>
+          </button>
+        </SheetClose>
       </div>
 
       <Separator className="bg-neutral-200 dark:bg-neutral-800" />

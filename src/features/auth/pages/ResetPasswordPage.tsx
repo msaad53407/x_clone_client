@@ -64,11 +64,11 @@ export default function ResetPasswordPage() {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
-        <Card className="w-full max-w-md bg-black border-neutral-800 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white p-4">
+        <Card className="w-full max-w-md bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-black dark:text-white">
           <CardHeader className="space-y-1 flex flex-col items-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="w-7 h-7 text-black fill-current">
+            <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center mb-4">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="w-7 h-7 text-white dark:text-black fill-current">
                 <g>
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
                 </g>
@@ -77,11 +77,16 @@ export default function ResetPasswordPage() {
             <CardTitle className="text-2xl font-bold">⚠️ Invalid Reset Link</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-neutral-400">This password reset link is invalid or has expired.</p>
+            <p className="text-neutral-500 dark:text-neutral-400">
+              This password reset link is invalid or has expired.
+            </p>
             <p className="text-sm text-neutral-500">Password reset links expire after 1 hour for security reasons.</p>
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <Button className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold" asChild>
+            <Button
+              className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold"
+              asChild
+            >
               <Link to="/forgot-password">Request New Reset Link</Link>
             </Button>
             <Link to="/login" className="text-sm text-blue-500 hover:underline text-center w-full">
@@ -94,18 +99,20 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
-      <Card className="w-full max-w-md bg-black border-neutral-800 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white p-4">
+      <Card className="w-full max-w-md bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 text-black dark:text-white">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-black fill-current">
+          <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center mb-4">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-5 h-5 text-white dark:text-black fill-current">
               <g>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
               </g>
             </svg>
           </div>
           <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
-          <CardDescription className="text-neutral-400">Enter your new password below.</CardDescription>
+          <CardDescription className="text-neutral-500 dark:text-neutral-400">
+            Enter your new password below.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -121,7 +128,7 @@ export default function ResetPasswordPage() {
                         type="password"
                         placeholder="••••••••"
                         {...field}
-                        className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -140,7 +147,7 @@ export default function ResetPasswordPage() {
                         type="password"
                         placeholder="••••••••"
                         {...field}
-                        className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -150,7 +157,7 @@ export default function ResetPasswordPage() {
               />
               <Button
                 type="submit"
-                className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Resetting...' : 'Reset Password'}

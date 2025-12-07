@@ -1,15 +1,18 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetTrigger } from '@/components/ui/sheet';
 import { MobileSidebar } from './MobileSidebar';
+import { useAuth } from '@/hooks/use-auth';
 
 export function MobileHeader() {
+  const { user } = useAuth();
+
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 md:hidden">
       <Sheet>
         <SheetTrigger>
           <Avatar className="w-8 h-8 cursor-pointer">
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>CN</AvatarFallback>
+            <AvatarImage src={user?.profile_image_url || undefined} className="object-cover" />
+            <AvatarFallback>{user?.display_name?.[0] || user?.username?.[0] || 'U'}</AvatarFallback>
           </Avatar>
         </SheetTrigger>
         <MobileSidebar />
