@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -8,14 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginSchema, type LoginValues } from '../schemas/auth.schema';
 import { useAuth } from '@/hooks/use-auth';
+import { getApiErrorMessage } from '@/types/api.types';
 
 export default function LoginPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, login } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isAuthenticated) {
-    return <Navigate to="/home" />;
-  }
-
+  // All hooks MUST be called before any conditional returns
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -24,9 +25,31 @@ export default function LoginPage() {
     }
   });
 
-  function onSubmit(data: LoginValues) {
-    console.log(data);
-    toast.success('Logged in successfully!');
+  // Now we can have conditional returns
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" />;
+  }
+
+  async function onSubmit(data: LoginValues) {
+    setIsSubmitting(true);
+    try {
+      await login(data);
+      toast.success('Logged in successfully!');
+      navigate('/home');
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -57,6 +80,7 @@ export default function LoginPage() {
                         placeholder="john@example.com"
                         {...field}
                         className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -76,6 +100,7 @@ export default function LoginPage() {
                         placeholder="••••••••"
                         {...field}
                         className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -86,8 +111,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                disabled={isSubmitting}
               >
-                Log in
+                {isSubmitting ? 'Signing in...' : 'Log in'}
               </Button>
             </form>
           </Form>

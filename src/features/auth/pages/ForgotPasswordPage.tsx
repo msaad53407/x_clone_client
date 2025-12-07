@@ -7,51 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  forgotPasswordSchema,
-  resetPasswordSchema,
-  type ForgotPasswordValues,
-  type ResetPasswordValues
-} from '../schemas/auth.schema';
+import { forgotPasswordSchema, type ForgotPasswordValues } from '../schemas/auth.schema';
 import { useAuth } from '@/hooks/use-auth';
+import { authService } from '../services/auth.service';
+import { getApiErrorMessage } from '@/types/api.types';
 
 export default function ForgotPasswordPage() {
   const { isAuthenticated } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
-  if (isAuthenticated) {
-    return <Navigate to="/home" />;
-  }
-
-  const [step, setStep] = useState<1 | 2>(1);
-  const [email, setEmail] = useState('');
-
-  const forgotPasswordForm = useForm<ForgotPasswordValues>({
+  const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: ''
     }
   });
 
-  const resetPasswordForm = useForm<ResetPasswordValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      otp: '',
-      password: '',
-      confirmPassword: ''
-    }
-  });
-
-  function onForgotPasswordSubmit(data: ForgotPasswordValues) {
-    console.log('Sending OTP to:', data.email);
-    setEmail(data.email);
-    toast.success('OTP sent to your email!');
-    setStep(2);
+  if (isAuthenticated) {
+    return <Navigate to="/home" />;
   }
 
-  function onResetPasswordSubmit(data: ResetPasswordValues) {
-    console.log('Resetting password for:', email, 'with OTP:', data.otp);
-    toast.success('Password reset successfully!');
-    // In a real app, you'd redirect to login here
+  async function onSubmit(data: ForgotPasswordValues) {
+    setIsSubmitting(true);
+    try {
+      await authService.forgotPassword(data.email);
+      setEmailSent(true);
+      toast.success('Password reset link sent to your email!');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -65,21 +52,19 @@ export default function ForgotPasswordPage() {
               </g>
             </svg>
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {step === 1 ? 'Find your X account' : 'Reset your password'}
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Find your X account</CardTitle>
           <CardDescription className="text-neutral-400">
-            {step === 1
-              ? 'Enter your email to search for your account.'
-              : `Enter the code sent to ${email} and your new password.`}
+            {emailSent
+              ? 'Check your email for the password reset link.'
+              : 'Enter your email to receive a password reset link.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 1 ? (
-            <Form {...forgotPasswordForm}>
-              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+          {!emailSent ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
-                  control={forgotPasswordForm.control}
+                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
@@ -89,6 +74,7 @@ export default function ForgotPasswordPage() {
                           placeholder="john@example.com"
                           {...field}
                           className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -98,75 +84,29 @@ export default function ForgotPasswordPage() {
                 <Button
                   type="submit"
                   className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                  disabled={isSubmitting}
                 >
-                  Next
+                  {isSubmitting ? 'Sending...' : 'Send Reset Link'}
                 </Button>
               </form>
             </Form>
           ) : (
-            <Form {...resetPasswordForm}>
-              <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="otp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Verification Code</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="123456"
-                          {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
-                >
-                  Reset Password
-                </Button>
-              </form>
-            </Form>
+            <div className="space-y-4 text-center">
+              <p className="text-neutral-400">
+                We've sent a password reset link to{' '}
+                <span className="text-white font-medium">{form.getValues('email')}</span>
+              </p>
+              <p className="text-sm text-neutral-500">
+                Click the link in the email to reset your password. The link will expire in 1 hour.
+              </p>
+              <Button
+                onClick={() => setEmailSent(false)}
+                variant="outline"
+                className="w-full rounded-full border-neutral-700"
+              >
+                Use different email
+              </Button>
+            </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-center">

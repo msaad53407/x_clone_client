@@ -4,6 +4,8 @@ import { Toaster } from '@/components/ui/sonner';
 import SignupPage from './features/auth/pages/SignupPage';
 import LoginPage from './features/auth/pages/LoginPage';
 import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage';
+import VerifyEmailPage from './features/auth/pages/VerifyEmailPage';
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import HomePage from './features/home/pages/HomePage';
 import MainLayout from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
@@ -34,6 +36,8 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

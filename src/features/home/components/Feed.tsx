@@ -1,55 +1,105 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { feedService } from '../services/feed.service';
 import { PostCard } from './PostCard';
+import type { Tweet } from '@/types/api.types';
 
 export function Feed() {
-  const posts = [
-    {
-      id: 1,
-      name: 'Mario Nawfal',
-      username: '@MarioNawfal',
-      avatar: 'https://github.com/shadcn.png', // Placeholder
-      time: '5h',
-      content:
-        '🇺🇸 SAM ALTMAN JUST HIT "CODE RED" - AND BIG TECH FINALLY SMELLS BLOOD\n\nOpenAI just threw the emergency lever.\n\nSam Altman - the man who spent the last 2 years looking untouchable - told his staff this week that the AI crown is no longer guaranteed.',
-      image:
-        'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YWl8ZW58MHx8MHx8fDA%3D',
-      comments: 85,
-      reposts: 37,
-      likes: 618,
-      views: '98K'
-    },
-    {
-      id: 2,
-      name: 'mary morgan',
-      username: '@maryarchived',
-      avatar: 'https://github.com/shadcn.png', // Placeholder
-      time: '15h',
-      content:
-        "this is so cowardly but unfortunately an omen for what's to come from hollywood going forward. authorial intent takes a backseat to algorithmically enhanced, crowdsourced, fan-service slop. have some artistic integrity and come up with A STORY. no wonder this cost $60M an episode",
-      comments: 120,
-      reposts: 45,
-      likes: 1200,
-      views: '150K'
-    },
-    {
-      id: 3,
-      name: 'DiscussingFish',
-      username: '@DiscussingFish',
-      avatar: 'https://github.com/shadcn.png', // Placeholder
-      time: 'Dec 1',
-      content:
-        'The Duffer Brothers say they shot 3 endings to the \'STRANGER THINGS\' series finale, and the version you watch will be randomized from household-to-household.\n\nEnding #2 reportedly "Canonizes a long-time internet fan theory."',
-      comments: 500,
-      reposts: 200,
-      likes: 5000,
-      views: '1M'
-    }
-  ];
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['homeFeed'],
+    queryFn: () => feedService.getHomeFeed({ page: 1, limit: 20 })
+  });
+
+  // Function to refetch feed (used after creating new posts)
+  const refetchFeed = () => {
+    queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex justify-center">
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-neutral-500">
+        <p>Failed to load feed. Please try again.</p>
+      </div>
+    );
+  }
+
+  const posts = data?.data || [];
+
+  if (posts.length === 0) {
+    return (
+      <div className="p-8 text-center text-neutral-500">
+        <p className="text-lg font-medium mb-2">No posts yet</p>
+        <p className="text-sm">Start following people or create your first post!</p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      {posts.map(post => (
-        <PostCard key={post.id} {...post} />
+      {posts.map((tweet: Tweet) => (
+        <PostCard
+          key={tweet.id}
+          id={tweet.id}
+          avatar={tweet.author.profile_image_url || 'https://github.com/shadcn.png'}
+          name={tweet.author.display_name || tweet.author.username}
+          username={`@${tweet.author.username}`}
+          authorId={tweet.author.id}
+          time={formatTimeAgo(tweet.created_at)}
+          content={tweet.content || ''}
+          image={tweet.image_url || undefined}
+          comments={tweet.comments_count}
+          likes={tweet.likes_count}
+          isLiked={tweet.is_liked}
+          isBookmarked={tweet.is_bookmarked}
+          quotedPost={
+            tweet.quoted_tweet
+              ? {
+                  avatar: tweet.quoted_tweet.author.profile_image_url || 'https://github.com/shadcn.png',
+                  name: tweet.quoted_tweet.author.display_name || tweet.quoted_tweet.author.username,
+                  username: `@${tweet.quoted_tweet.author.username}`,
+                  time: formatTimeAgo(tweet.quoted_tweet.created_at),
+                  content: tweet.quoted_tweet.content || '',
+                  image: tweet.quoted_tweet.image_url || undefined
+                }
+              : undefined
+          }
+          onRefresh={refetchFeed}
+        />
       ))}
     </div>
   );
+}
+
+/**
+ * Format date to relative time (e.g., "5h", "2d", "Dec 1")
+ */
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) {
+    return `${diffSecs}s`;
+  } else if (diffMins < 60) {
+    return `${diffMins}m`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h`;
+  } else if (diffDays < 7) {
+    return `${diffDays}d`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
 }

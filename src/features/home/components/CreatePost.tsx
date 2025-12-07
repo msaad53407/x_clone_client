@@ -1,15 +1,23 @@
 import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import EmojiPicker, { type EmojiClickData, Theme } from 'emoji-picker-react';
 import { Image, Smile, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+import { tweetService } from '../services/tweet.service';
+import { getApiErrorMessage } from '@/types/api.types';
 
 export function CreatePost() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [postContent, setPostContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
@@ -62,6 +70,36 @@ export function CreatePost() {
     }
   };
 
+  const handleSubmit = async () => {
+    if (!postContent.trim() && !imagePreview) return;
+
+    setIsSubmitting(true);
+    try {
+      // TODO: Upload image to Cloudinary first if imagePreview exists
+      // For now, we only submit the text content
+      await tweetService.create({
+        content: postContent.trim() || undefined
+        // image_url: uploadedImageUrl, // Add after implementing image upload
+      });
+
+      // Reset form
+      setPostContent('');
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      // Refresh the feed
+      queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+
+      toast.success('Post created!');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div
       className={`border-b border-neutral-200 dark:border-neutral-800 p-4 transition-colors ${
@@ -73,8 +111,8 @@ export function CreatePost() {
     >
       <div className="flex gap-4">
         <Avatar>
-          <AvatarImage src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1887&auto=format&fit=crop" />
-          <AvatarFallback>AP</AvatarFallback>
+          <AvatarImage src={user?.profile_image_url || 'https://github.com/shadcn.png'} className="object-cover" />
+          <AvatarFallback>{user?.display_name?.[0] || user?.username?.[0] || 'U'}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <Textarea
@@ -82,6 +120,7 @@ export function CreatePost() {
             className="w-full text-xl border-none focus-visible:ring-0 resize-none p-0 min-h-[50px] bg-transparent"
             value={postContent}
             onChange={e => setPostContent(e.target.value)}
+            disabled={isSubmitting}
           />
 
           {imagePreview && (
@@ -92,6 +131,7 @@ export function CreatePost() {
                 size="icon"
                 className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8"
                 onClick={handleRemoveImage}
+                disabled={isSubmitting}
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -106,6 +146,7 @@ export function CreatePost() {
                 size="icon"
                 className="rounded-full hover:bg-blue-500/10 w-8 h-8"
                 onClick={handleImageClick}
+                disabled={isSubmitting}
               >
                 <Image className="w-5 h-5" />
               </Button>
@@ -115,6 +156,7 @@ export function CreatePost() {
                 size="icon"
                 className="rounded-full hover:bg-blue-500/10 w-8 h-8"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                disabled={isSubmitting}
               >
                 <Smile className="w-5 h-5" />
               </Button>
@@ -127,9 +169,10 @@ export function CreatePost() {
             </div>
             <Button
               className="bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold px-4"
-              disabled={!postContent.trim() && !imagePreview}
+              disabled={(!postContent.trim() && !imagePreview) || isSubmitting}
+              onClick={handleSubmit}
             >
-              Post
+              {isSubmitting ? 'Posting...' : 'Post'}
             </Button>
           </div>
         </div>

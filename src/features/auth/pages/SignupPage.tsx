@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Navigate, Link } from 'react-router';
+import { Navigate, Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -8,28 +9,54 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { signupSchema, type SignupValues } from '../schemas/auth.schema';
 import { useAuth } from '@/hooks/use-auth';
+import { getApiErrorMessage } from '@/types/api.types';
 
 export default function SignupPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, register } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isAuthenticated) {
-    return <Navigate to="/home" />;
-  }
-
+  // All hooks MUST be called before any conditional returns
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      display_name: '',
       email: '',
       username: '',
       password: ''
     }
   });
 
-  function onSubmit(data: SignupValues) {
-    console.log(data);
-    toast.success('Account created successfully!');
+  // Now we can have conditional returns
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" />;
+  }
+
+  async function onSubmit(data: SignupValues) {
+    setIsSubmitting(true);
+    try {
+      await register({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        display_name: data.display_name
+      });
+      toast.success('Account created! Please check your email to verify your account.');
+      navigate('/login');
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -49,42 +76,24 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="John"
-                          {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Doe"
-                          {...field}
-                          className="bg-black border-neutral-800 focus-visible:ring-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="display_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="John Doe"
+                        {...field}
+                        className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -94,9 +103,10 @@ export default function SignupPage() {
                     <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="@johndoe"
+                        placeholder="johndoe"
                         {...field}
                         className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -115,6 +125,7 @@ export default function SignupPage() {
                         placeholder="john@example.com"
                         {...field}
                         className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -134,6 +145,7 @@ export default function SignupPage() {
                         placeholder="••••••••"
                         {...field}
                         className="bg-black border-neutral-800 focus-visible:ring-blue-500"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -144,8 +156,9 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 className="w-full bg-white text-black hover:bg-neutral-200 rounded-full font-bold h-10 text-base"
+                disabled={isSubmitting}
               >
-                Sign up
+                {isSubmitting ? 'Creating account...' : 'Sign up'}
               </Button>
             </form>
           </Form>

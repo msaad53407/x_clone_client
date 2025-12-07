@@ -18,21 +18,28 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Repeat2, Share, Trash2 } from 'lucide-react';
+import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Share, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+import { tweetService } from '../services/tweet.service';
+import { engagementService } from '../services/engagement.service';
+import { getApiErrorMessage } from '@/types/api.types';
 
 export interface PostCardProps {
+  id: string;
   avatar: string;
   name: string;
   username: string;
+  authorId: string;
   time: string;
   content: string;
   image?: string;
   comments: number;
-  reposts: number;
   likes: number;
+  isLiked?: boolean;
+  isBookmarked?: boolean;
   quotedPost?: {
     avatar: string;
     name: string;
@@ -41,53 +48,125 @@ export interface PostCardProps {
     content: string;
     image?: string;
   };
-  isOwner?: boolean;
+  onRefresh?: () => void;
 }
 
 export function PostCard({
+  id,
   avatar,
   name,
   username,
+  authorId,
   time,
   content,
   image,
   comments,
-  reposts,
-  likes,
+  likes: initialLikes,
+  isLiked: initialIsLiked = false,
+  isBookmarked: initialIsBookmarked = false,
   quotedPost,
-  isOwner = false
+  onRefresh
 }: PostCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOwner = user?.id === authorId;
+
+  // Local state for optimistic updates
   const [isDeleted, setIsDeleted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [postContent, setPostContent] = useState(content);
   const [tempContent, setTempContent] = useState(content);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
+  // Engagement states
+  const [liked, setLiked] = useState(initialIsLiked);
+  const [likeCount, setLikeCount] = useState(initialLikes);
+  const [bookmarked, setBookmarked] = useState(initialIsBookmarked);
+
+  // Loading states
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`https://x.com/${username.replace('@', '')}/status/123456789`);
+    navigator.clipboard.writeText(`${window.location.origin}/post/${username.replace('@', '')}/${id}`);
     toast.success('Copied to clipboard');
   };
 
-  const handleBookmark = () => {
-    toast.success('Post added to your Bookmarks');
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (likeLoading) return;
+
+    setLikeLoading(true);
+    // Optimistic update
+    const wasLiked = liked;
+    setLiked(!liked);
+    setLikeCount(prev => (liked ? prev - 1 : prev + 1));
+
+    try {
+      if (wasLiked) {
+        await engagementService.unlikeTweet(id);
+      } else {
+        await engagementService.likeTweet(id);
+      }
+    } catch (error) {
+      // Revert on error
+      setLiked(wasLiked);
+      setLikeCount(prev => (wasLiked ? prev + 1 : prev - 1));
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setLikeLoading(false);
+    }
   };
 
-  const handleSaveEdit = () => {
-    setPostContent(tempContent);
-    setIsEditing(false);
-    toast.success('Post updated successfully');
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (bookmarkLoading) return;
+
+    setBookmarkLoading(true);
+    const wasBookmarked = bookmarked;
+    setBookmarked(!bookmarked);
+
+    try {
+      if (wasBookmarked) {
+        await engagementService.unbookmarkTweet(id);
+        toast.success('Removed from Bookmarks');
+      } else {
+        await engagementService.bookmarkTweet(id);
+        toast.success('Added to Bookmarks');
+      }
+    } catch (error) {
+      setBookmarked(wasBookmarked);
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setBookmarkLoading(false);
+    }
   };
 
-  const handleDelete = () => {
-    setIsDeleted(true);
-    setShowDeleteAlert(false);
-    toast.success('Post deleted');
+  const handleSaveEdit = async () => {
+    try {
+      await tweetService.update(id, { content: tempContent });
+      setPostContent(tempContent);
+      setIsEditing(false);
+      toast.success('Post updated successfully');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await tweetService.delete(id);
+      setIsDeleted(true);
+      setShowDeleteAlert(false);
+      toast.success('Post deleted');
+      onRefresh?.();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
   };
 
   const handlePostClick = () => {
-    const postId = '123456789';
-    navigate(`/post/${username.replace('@', '')}/${postId}`);
+    navigate(`/post/${username.replace('@', '')}/${id}`);
   };
 
   if (isDeleted) return null;
@@ -196,36 +275,28 @@ export function PostCard({
                 </div>
                 <span className="text-xs">{comments}</span>
               </Button>
-              <Button variant="ghost" size="sm" className="group flex items-center gap-2 hover:text-green-500 px-0">
-                <div className="p-2 rounded-full group-hover:bg-green-500/10">
-                  <Repeat2 className="w-4 h-4" />
-                </div>
-                <span className="text-xs">{reposts}</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="group flex items-center gap-2 hover:text-pink-500 px-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`group flex items-center gap-2 px-0 ${liked ? 'text-pink-500' : 'hover:text-pink-500'}`}
+                onClick={handleLike}
+                disabled={likeLoading}
+              >
                 <div className="p-2 rounded-full group-hover:bg-pink-500/10">
-                  <Heart className="w-4 h-4" />
+                  <Heart className={`w-4 h-4 ${liked ? 'fill-pink-500' : ''}`} />
                 </div>
-                <span className="text-xs">{likes}</span>
+                <span className="text-xs">{likeCount}</span>
               </Button>
-              {/* <Button variant="ghost" size="sm" className="group flex items-center gap-2 hover:text-blue-500 px-0">
-                <div className="p-2 rounded-full group-hover:bg-blue-500/10">
-                  <BarChart2 className="w-4 h-4" />
-                </div>
-                <span className="text-xs">{views}</span>
-              </Button> */}
               <div className="flex">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="group h-8 w-8 hover:text-blue-500 rounded-full"
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleBookmark();
-                  }}
+                  className={`group h-8 w-8 rounded-full ${bookmarked ? 'text-blue-500' : 'hover:text-blue-500'}`}
+                  onClick={handleBookmark}
+                  disabled={bookmarkLoading}
                 >
                   <div className="p-2 rounded-full group-hover:bg-blue-500/10">
-                    <Bookmark className="w-4 h-4" />
+                    <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-blue-500' : ''}`} />
                   </div>
                 </Button>
                 <Button

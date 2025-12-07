@@ -1,90 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Search, MoreHorizontal } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserResultCard } from '../components/UserResultCard';
 import { PostCard } from '@/features/home/components/PostCard';
+import { searchService } from '../services/search.service';
+import type { UserPublic, Tweet } from '@/types/api.types';
+
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) return `${diffSecs}s`;
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function ExplorePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'people' | 'posts'>('people');
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || 'ali'); // Default query based on screenshot or URL param
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
 
-  // Mock Data for People
-  const allUsers = [
-    {
-      id: '1',
-      name: 'SheR•ALi',
-      username: '@Sher__Ali',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=800&auto=format&fit=crop',
-      bio: 'Pro Cricket Fan 🏏 || Cricket Critic ✍️ || Karachi Kings |• Love memes & Lough •| Fan Account of Mitchell Starc / Ben Stokes / Only Babar Azam Lover 👸',
-      isVerified: true,
-      isFollowing: false
-    },
-    {
-      id: '2',
-      name: 'Ali',
-      username: '@ali_charts',
-      avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=800&auto=format&fit=crop',
-      bio: 'Building millionaires, one trade at a time | Join me on Discord: whop.com/alicharts/',
-      isVerified: true,
-      isFollowing: false
-    },
-    {
-      id: '3',
-      name: 'ali',
-      username: '@endingwithali',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=800&auto=format&fit=crop',
-      bio: 'software engineer - content creator @ links.ali.dev - threatwire host @hak5 - nyc - MIT - jewish',
-      isVerified: true,
-      isFollowing: false
-    }
-  ];
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      if (searchQuery) {
+        setSearchParams({ q: searchQuery });
+      } else {
+        setSearchParams({});
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, setSearchParams]);
 
-  // Mock Data for Posts
-  const allPosts = [
-    {
-      id: 'p1',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=800&auto=format&fit=crop',
-      name: 'SheR•ALi',
-      username: '@Sher__Ali',
-      time: '2h',
-      content: 'Babar Azam is truly a legend. #Cricket #BabarAzam',
-      comments: 12,
-      reposts: 5,
-      likes: 120,
-      views: '15k'
-    },
-    {
-      id: 'p2',
-      avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=800&auto=format&fit=crop',
-      name: 'Halal Nation',
-      username: '@HalalNation_',
-      time: 'Dec 2',
-      content: 'The Last Picture Of Muhammad Ali Before He Returned To Allah 🖤',
-      image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=800&auto=format&fit=crop', // Placeholder for Ali image
-      comments: 24,
-      reposts: 100,
-      likes: 1500,
-      views: '120k',
-      isVerified: true
-    }
-  ];
+  // Search users
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['searchUsers', debouncedQuery],
+    queryFn: () => searchService.searchUsers({ q: debouncedQuery }),
+    enabled: !!debouncedQuery && activeTab === 'people'
+  });
 
-  // Filter Logic (Simple includes check)
-  const filteredUsers = allUsers.filter(
-    u =>
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Search tweets
+  const { data: tweetsData, isLoading: tweetsLoading } = useQuery({
+    queryKey: ['searchTweets', debouncedQuery],
+    queryFn: () => searchService.searchTweets({ q: debouncedQuery }),
+    enabled: !!debouncedQuery && activeTab === 'posts'
+  });
 
-  const filteredPosts = allPosts.filter(
-    p =>
-      p.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const users = usersData?.data || [];
+  const tweets = tweetsData?.data || [];
+  const isLoading = activeTab === 'people' ? usersLoading : tweetsLoading;
 
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
@@ -116,17 +93,7 @@ export default function ExplorePage() {
 
       {/* Tabs */}
       <div className="sticky top-[53px] z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 flex">
-        {/* Tab 1: People */}
-        {/* Note: In x.com, it seems tabs scroll horizontally if many. Here we have 2 fixed. */}
-        {/* Actually, user said "tabs", usually fixed width or equal distribution. */}
         <div className="flex w-full">
-          {/* Top / Latest / People / Media / Lists ... usually in search results.
-                User specifically asked for "2 tabs: People, Posts". 
-                "Top" usually default but user said "People" default. 
-                Let's emulate the screenshot's tab bar style. 
-            */}
-
-          {/* We will just do the tabs requested */}
           <button
             onClick={() => setActiveTab('people')}
             className="flex-1 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 transition-colors py-3 md:py-4 px-4 text-center text-sm font-bold relative"
@@ -150,24 +117,56 @@ export default function ExplorePage() {
 
       {/* Content */}
       <div className="flex-1">
-        {activeTab === 'people' && (
+        {!debouncedQuery ? (
+          <div className="p-8 text-center text-neutral-500">
+            <p className="text-lg font-medium">Search X</p>
+            <p className="text-sm">Enter a search term to find people or posts</p>
+          </div>
+        ) : isLoading ? (
+          <div className="p-8 flex justify-center">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : activeTab === 'people' ? (
           <div className="flex flex-col">
             <h2 className="px-4 py-3 font-bold text-xl">People</h2>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map(user => <UserResultCard key={user.id} {...user} />)
+            {users.length > 0 ? (
+              users.map((user: UserPublic) => (
+                <UserResultCard
+                  key={user.id}
+                  name={user.display_name || user.username}
+                  username={`@${user.username}`}
+                  avatar={user.profile_image_url || 'https://github.com/shadcn.png'}
+                  bio={user.bio || ''}
+                  isVerified={user.is_verified}
+                  isFollowing={user.is_following}
+                />
+              ))
             ) : (
-              <div className="p-8 text-center text-neutral-500">No people found</div>
+              <div className="p-8 text-center text-neutral-500">No people found for "{debouncedQuery}"</div>
             )}
-            <div className="p-4 text-blue-500 text-sm cursor-pointer hover:underline">View all</div>
           </div>
-        )}
-
-        {activeTab === 'posts' && (
+        ) : (
           <div>
-            {filteredPosts.length > 0 ? (
-              filteredPosts.map(post => <PostCard key={post.id} {...post} />)
+            {tweets.length > 0 ? (
+              tweets.map((tweet: Tweet) => (
+                <PostCard
+                  key={tweet.id}
+                  id={tweet.id}
+                  avatar={tweet.author.profile_image_url || 'https://github.com/shadcn.png'}
+                  name={tweet.author.display_name || tweet.author.username}
+                  username={`@${tweet.author.username}`}
+                  authorId={tweet.author.id}
+                  time={formatTimeAgo(tweet.created_at)}
+                  content={tweet.content || ''}
+                  image={tweet.image_url || undefined}
+                  comments={tweet.comments_count}
+                  likes={tweet.likes_count}
+                  isLiked={tweet.is_liked}
+                  isBookmarked={tweet.is_bookmarked}
+                />
+              ))
             ) : (
-              <div className="p-8 text-center text-neutral-500">No posts found</div>
+              <div className="p-8 text-center text-neutral-500">No posts found for "{debouncedQuery}"</div>
             )}
           </div>
         )}

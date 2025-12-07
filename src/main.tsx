@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router';
 import App from './App';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { AuthProvider } from '@/hooks/use-auth';
 
 const root = document.getElementById('root');
 const queryClient = new QueryClient({
@@ -18,8 +19,10 @@ createRoot(root!).render(
   <BrowserRouter>
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <ReactQueryDevtools />
-        <App />
+        <AuthProvider>
+          <ReactQueryDevtools />
+          <App />
+        </AuthProvider>
       </QueryClientProvider>
     </StrictMode>
   </BrowserRouter>
