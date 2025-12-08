@@ -9,6 +9,7 @@ import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import HomePage from './features/home/pages/HomePage';
 import MainLayout from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { FeedSkeleton } from './components/skeletons';
 import './index.css';
 import { ThemeProvider } from './components/theme/theme-provider';
 
@@ -19,8 +20,8 @@ const SavedPage = lazy(() => import('./features/saved/pages/SavedPage'));
 
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-full min-h-[200px]">
-      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    <div className="flex flex-col h-full min-h-[200px]">
+      <FeedSkeleton count={3} />
     </div>
   );
 }

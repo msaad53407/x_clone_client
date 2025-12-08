@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { feedService } from '../services/feed.service';
 import { PostCard } from './PostCard';
+import { FeedSkeleton } from '@/components/skeletons';
 import { formatTimeAgo } from '@/utils/formatTime';
 import type { Tweet } from '@/types/api.types';
 
@@ -18,11 +19,7 @@ export function Feed() {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-8 flex justify-center">
-        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FeedSkeleton count={5} />;
   }
 
   if (error) {

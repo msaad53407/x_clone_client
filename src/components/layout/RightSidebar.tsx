@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/features/profile/services/user.service';
+import { WhoToFollowSkeleton } from '@/components/skeletons';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/types/api.types';
 import type { UserPublic } from '@/types/api.types';
@@ -50,9 +51,7 @@ export function RightSidebar() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-            </div>
+            <WhoToFollowSkeleton count={3} />
           ) : suggestions.length === 0 ? (
             <p className="text-neutral-500 text-sm">No suggestions available</p>
           ) : (

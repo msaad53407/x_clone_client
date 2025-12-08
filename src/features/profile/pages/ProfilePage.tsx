@@ -6,6 +6,7 @@ import { ProfileHeader } from '../components/ProfileHeader';
 import { PostCard } from '@/features/home/components/PostCard';
 import { userService } from '../services/user.service';
 import { useAuth } from '@/hooks/use-auth';
+import { ProfileHeaderSkeleton, FeedSkeleton } from '@/components/skeletons';
 import { formatTimeAgo } from '@/utils/formatTime';
 import type { Tweet } from '@/types/api.types';
 
@@ -54,9 +55,8 @@ export default function ProfilePage() {
           </Button>
           <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
         </div>
-        <div className="p-8 flex justify-center">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <ProfileHeaderSkeleton />
+        <FeedSkeleton count={3} />
       </div>
     );
   }
@@ -111,9 +111,7 @@ export default function ProfilePage() {
       {/* User's Tweets */}
       <div>
         {tweetsLoading ? (
-          <div className="p-8 flex justify-center">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <FeedSkeleton count={3} />
         ) : tweets.length === 0 ? (
           <div className="p-8 text-center text-neutral-500">
             <p className="text-lg font-medium">No posts yet</p>

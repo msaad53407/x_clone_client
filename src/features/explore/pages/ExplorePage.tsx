@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { UserResultCard } from '../components/UserResultCard';
 import { PostCard } from '@/features/home/components/PostCard';
 import { searchService } from '../services/search.service';
+import { SearchResultsSkeleton, FeedSkeleton } from '@/components/skeletons';
 import { formatTimeAgo } from '@/utils/formatTime';
 import type { UserPublic, Tweet } from '@/types/api.types';
 
@@ -108,9 +109,11 @@ export default function ExplorePage() {
             <p className="text-sm">Enter a search term to find people or posts</p>
           </div>
         ) : isLoading ? (
-          <div className="p-8 flex justify-center">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          activeTab === 'people' ? (
+            <SearchResultsSkeleton count={5} />
+          ) : (
+            <FeedSkeleton count={5} />
+          )
         ) : activeTab === 'people' ? (
           <div className="flex flex-col">
             <h2 className="px-4 py-3 font-bold text-xl">People</h2>

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostCard } from '@/features/home/components/PostCard';
 import { engagementService } from '@/features/home/services/engagement.service';
+import { FeedSkeleton } from '@/components/skeletons';
 import { formatTimeAgo } from '@/utils/formatTime';
 import type { Tweet } from '@/types/api.types';
 import { Bookmark } from 'lucide-react';
@@ -28,9 +29,7 @@ export default function SavedPage() {
       </div>
 
       {isLoading ? (
-        <div className="p-8 flex justify-center">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <FeedSkeleton count={5} />
       ) : error ? (
         <div className="p-8 text-center text-neutral-500">
           <p>Failed to load bookmarks. Please try again.</p>
