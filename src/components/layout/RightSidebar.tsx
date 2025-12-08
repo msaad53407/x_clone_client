@@ -114,7 +114,7 @@ function UserSuggestionItem({ user }: { user: UserPublic }) {
 
   return (
     <div className="flex items-center justify-between">
-      <Link to={`/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">
+      <Link to={`/profile/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={user.profile_image_url || undefined} className="object-cover" />
           <AvatarFallback>{(user.display_name || user.username)[0]?.toUpperCase()}</AvatarFallback>
