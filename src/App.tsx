@@ -9,6 +9,8 @@ import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import HomePage from './features/home/pages/HomePage';
 import MainLayout from './components/layout/MainLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import NotFoundPage from './pages/NotFoundPage';
 import { FeedSkeleton } from './components/skeletons';
 import './index.css';
 import { ThemeProvider } from './components/theme/theme-provider';
@@ -28,7 +30,7 @@ function PageLoader() {
 
 function App() {
   return (
-    <>
+    <ErrorBoundary>
       <ThemeProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
@@ -86,10 +88,13 @@ function App() {
               />
             </Route>
           </Route>
+
+          {/* 404 Not Found - catch all unmatched routes */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <Toaster />
       </ThemeProvider>
-    </>
+    </ErrorBoundary>
   );
 }
 
