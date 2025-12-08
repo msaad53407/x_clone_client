@@ -19,9 +19,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { Bookmark, Edit2, Heart, MessageCircle, MoreHorizontal, Share, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { tweetService } from '../services/tweet.service';
 import { engagementService } from '../services/engagement.service';
@@ -68,6 +69,7 @@ export function PostCard({
   onRefresh
 }: PostCardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const isOwner = user?.id === authorId;
 
@@ -78,91 +80,144 @@ export function PostCard({
   const [tempContent, setTempContent] = useState(content);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
-  // Engagement states
+  // Engagement states for optimistic updates
   const [liked, setLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikes);
   const [bookmarked, setBookmarked] = useState(initialIsBookmarked);
 
-  // Loading states
-  const [likeLoading, setLikeLoading] = useState(false);
-  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  // Sync local state with props when they change (e.g., after refetch)
+  useEffect(() => {
+    setLiked(initialIsLiked);
+    setLikeCount(initialLikes);
+    setBookmarked(initialIsBookmarked);
+  }, [initialIsLiked, initialLikes, initialIsBookmarked]);
+
+  useEffect(() => {
+    setPostContent(content);
+  }, [content]);
+
+  // Invalidate all relevant queries
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+    queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+    queryClient.invalidateQueries({ queryKey: ['tweet', id] });
+    queryClient.invalidateQueries({ queryKey: ['userTweets'] });
+    queryClient.invalidateQueries({ queryKey: ['searchTweets'] });
+  };
+
+  // Like mutation
+  const likeMutation = useMutation({
+    mutationFn: async (wasLiked: boolean) => {
+      if (wasLiked) {
+        await engagementService.unlikeTweet(id);
+      } else {
+        await engagementService.likeTweet(id);
+      }
+    },
+    onMutate: async (wasLiked: boolean) => {
+      // Optimistic update
+      setLiked(!wasLiked);
+      setLikeCount(prev => (wasLiked ? prev - 1 : prev + 1));
+      return { wasLiked };
+    },
+    onError: (_error, _variables, context) => {
+      // Revert on error
+      if (context) {
+        setLiked(context.wasLiked);
+        setLikeCount(prev => (context.wasLiked ? prev + 1 : prev - 1));
+      }
+      toast.error(getApiErrorMessage(_error));
+    },
+    onSettled: () => {
+      invalidateQueries();
+    }
+  });
+
+  // Bookmark mutation
+  const bookmarkMutation = useMutation({
+    mutationFn: async (wasBookmarked: boolean) => {
+      if (wasBookmarked) {
+        await engagementService.unbookmarkTweet(id);
+      } else {
+        await engagementService.bookmarkTweet(id);
+      }
+    },
+    onMutate: async (wasBookmarked: boolean) => {
+      setBookmarked(!wasBookmarked);
+      return { wasBookmarked };
+    },
+    onSuccess: (_data, wasBookmarked) => {
+      if (wasBookmarked) {
+        toast.success('Removed from Bookmarks');
+      } else {
+        toast.success('Added to Bookmarks');
+      }
+    },
+    onError: (_error, _variables, context) => {
+      if (context) {
+        setBookmarked(context.wasBookmarked);
+      }
+      toast.error(getApiErrorMessage(_error));
+    },
+    onSettled: () => {
+      invalidateQueries();
+    }
+  });
+
+  // Update tweet mutation
+  const updateMutation = useMutation({
+    mutationFn: (newContent: string) => tweetService.update(id, { content: newContent }),
+    onSuccess: () => {
+      setPostContent(tempContent);
+      setIsEditing(false);
+      toast.success('Post updated successfully');
+      invalidateQueries();
+    },
+    onError: error => {
+      toast.error(getApiErrorMessage(error));
+    }
+  });
+
+  // Delete tweet mutation
+  const deleteMutation = useMutation({
+    mutationFn: () => tweetService.delete(id),
+    onSuccess: () => {
+      setIsDeleted(true);
+      setShowDeleteAlert(false);
+      toast.success('Post deleted');
+      invalidateQueries();
+      onRefresh?.();
+    },
+    onError: error => {
+      toast.error(getApiErrorMessage(error));
+    }
+  });
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${username.replace('@', '')}/${id}`);
     toast.success('Copied to clipboard');
   };
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (likeLoading) return;
-
-    setLikeLoading(true);
-    // Optimistic update
-    const wasLiked = liked;
-    setLiked(!liked);
-    setLikeCount(prev => (liked ? prev - 1 : prev + 1));
-
-    try {
-      if (wasLiked) {
-        await engagementService.unlikeTweet(id);
-      } else {
-        await engagementService.likeTweet(id);
-      }
-    } catch (error) {
-      // Revert on error
-      setLiked(wasLiked);
-      setLikeCount(prev => (wasLiked ? prev + 1 : prev - 1));
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setLikeLoading(false);
-    }
+    if (likeMutation.isPending) return;
+    likeMutation.mutate(liked);
   };
 
-  const handleBookmark = async (e: React.MouseEvent) => {
+  const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (bookmarkLoading) return;
-
-    setBookmarkLoading(true);
-    const wasBookmarked = bookmarked;
-    setBookmarked(!bookmarked);
-
-    try {
-      if (wasBookmarked) {
-        await engagementService.unbookmarkTweet(id);
-        toast.success('Removed from Bookmarks');
-      } else {
-        await engagementService.bookmarkTweet(id);
-        toast.success('Added to Bookmarks');
-      }
-    } catch (error) {
-      setBookmarked(wasBookmarked);
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setBookmarkLoading(false);
-    }
+    if (bookmarkMutation.isPending) return;
+    bookmarkMutation.mutate(bookmarked);
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      await tweetService.update(id, { content: tempContent });
-      setPostContent(tempContent);
-      setIsEditing(false);
-      toast.success('Post updated successfully');
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    }
+  const handleSaveEdit = () => {
+    if (updateMutation.isPending) return;
+    updateMutation.mutate(tempContent);
   };
 
-  const handleDelete = async () => {
-    try {
-      await tweetService.delete(id);
-      setIsDeleted(true);
-      setShowDeleteAlert(false);
-      toast.success('Post deleted');
-      onRefresh?.();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    }
+  const handleDelete = () => {
+    if (deleteMutation.isPending) return;
+    deleteMutation.mutate();
   };
 
   const handlePostClick = () => {
@@ -280,7 +335,7 @@ export function PostCard({
                 size="sm"
                 className={`group flex items-center gap-2 px-0 ${liked ? 'text-pink-500' : 'hover:text-pink-500'}`}
                 onClick={handleLike}
-                disabled={likeLoading}
+                disabled={likeMutation.isPending}
               >
                 <div className="p-2 rounded-full group-hover:bg-pink-500/10">
                   <Heart className={`w-4 h-4 ${liked ? 'fill-pink-500' : ''}`} />
@@ -293,7 +348,7 @@ export function PostCard({
                   size="icon"
                   className={`group h-8 w-8 rounded-full ${bookmarked ? 'text-blue-500' : 'hover:text-blue-500'}`}
                   onClick={handleBookmark}
-                  disabled={bookmarkLoading}
+                  disabled={bookmarkMutation.isPending}
                 >
                   <div className="p-2 rounded-full group-hover:bg-blue-500/10">
                     <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-blue-500' : ''}`} />
@@ -336,9 +391,10 @@ export function PostCard({
             </Button>
             <Button
               onClick={handleSaveEdit}
+              disabled={updateMutation.isPending}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full"
             >
-              Save
+              {updateMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -355,8 +411,12 @@ export function PostCard({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-full">
-              Delete
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

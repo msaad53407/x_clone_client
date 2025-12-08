@@ -31,7 +31,7 @@ interface CommentProps {
   isOwner?: boolean;
   isPostOwner?: boolean;
   onDelete?: (id: string) => void;
-  onUpdate?: (id: string, content: string) => Promise<void>;
+  onUpdate?: (id: string, content: string) => void | Promise<void>;
 }
 
 export function Comment({

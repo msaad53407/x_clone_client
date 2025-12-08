@@ -7,9 +7,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { uploadService } from '@/services/upload.service';
 import type { UserPublic } from '@/types/api.types';
 import { getApiErrorMessage } from '@/types/api.types';
-import { useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, CalendarDays, Camera, Loader2, Mail, MoreHorizontal, X } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { BadgeCheck, CalendarDays, Camera, Link2, Loader2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { userService } from '../services/user.service';
 
@@ -28,7 +28,6 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
   const { refreshUser } = useAuth();
   const [isFollowing, setIsFollowing] = useState(user.is_following);
   const [followersCount, setFollowersCount] = useState(user.followers_count);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Sync state when user prop changes (e.g., navigating to different profile)
   useEffect(() => {
@@ -40,7 +39,6 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState(user.display_name || '');
   const [editBio, setEditBio] = useState(user.bio || '');
-  const [isSaving, setIsSaving] = useState(false);
 
   // Image upload state
   const [profileImagePreview, setProfileImagePreview] = useState(user.profile_image_url || '');
@@ -53,35 +51,46 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
   const profileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFollow = async () => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-    const wasFollowing = isFollowing;
-
-    // Optimistic update
-    setIsFollowing(!wasFollowing);
-    setFollowersCount(prev => (wasFollowing ? prev - 1 : prev + 1));
-
-    try {
+  // Follow/unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: async (wasFollowing: boolean) => {
       if (wasFollowing) {
         await userService.unfollow(user.username);
-        toast.success(`Unfollowed @${user.username}`);
       } else {
         await userService.follow(user.username);
+      }
+    },
+    onMutate: async (wasFollowing: boolean) => {
+      // Optimistic update
+      setIsFollowing(!wasFollowing);
+      setFollowersCount(prev => (wasFollowing ? prev - 1 : prev + 1));
+      return { wasFollowing };
+    },
+    onSuccess: (_data, wasFollowing) => {
+      if (wasFollowing) {
+        toast.success(`Unfollowed @${user.username}`);
+      } else {
         toast.success(`Following @${user.username}`);
       }
+    },
+    onError: (_error, _vars, context) => {
+      // Revert on error
+      if (context) {
+        setIsFollowing(context.wasFollowing);
+        setFollowersCount(prev => (context.wasFollowing ? prev + 1 : prev - 1));
+      }
+      toast.error(getApiErrorMessage(_error));
+    },
+    onSettled: () => {
       // Invalidate user query to refresh data
       queryClient.invalidateQueries({ queryKey: ['user', user.username] });
       queryClient.invalidateQueries({ queryKey: ['userSuggestions'] });
-    } catch (error) {
-      // Revert on error
-      setIsFollowing(wasFollowing);
-      setFollowersCount(prev => (wasFollowing ? prev + 1 : prev - 1));
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsLoading(false);
     }
+  });
+
+  const handleFollow = () => {
+    if (followMutation.isPending) return;
+    followMutation.mutate(isFollowing);
   };
 
   const handleOpenEditModal = () => {
@@ -114,9 +123,9 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
     }
   };
 
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    try {
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
       // Upload profile image if changed
       if (profileImageFile) {
         setIsUploadingProfile(true);
@@ -142,21 +151,30 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
         display_name: editDisplayName || undefined,
         bio: editBio || undefined
       });
-
+    },
+    onSuccess: () => {
       // Refresh user data
       queryClient.invalidateQueries({ queryKey: ['user', user.username] });
       refreshUser();
 
       setShowEditModal(false);
       toast.success('Profile updated successfully');
-    } catch (error) {
+    },
+    onError: error => {
       toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsSaving(false);
+    },
+    onSettled: () => {
       setIsUploadingProfile(false);
       setIsUploadingBanner(false);
     }
+  });
+
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate();
   };
+
+  const isSaving = updateProfileMutation.isPending;
+  const isLoading = followMutation.isPending;
 
   const isUploading = isUploadingProfile || isUploadingBanner;
 
@@ -191,15 +209,13 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
                     variant="outline"
                     size="icon"
                     className="rounded-full w-[34px] h-[34px] border-neutral-300 dark:border-neutral-600"
+                    onClick={() => {
+                      const profileUrl = `${window.location.origin}/profile/${user.username}`;
+                      navigator.clipboard.writeText(profileUrl);
+                      toast.success('Profile URL copied to clipboard');
+                    }}
                   >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full w-[34px] h-[34px] border-neutral-300 dark:border-neutral-600"
-                  >
-                    <Mail className="w-4 h-4" />
+                    <Link2 className="w-4 h-4" />
                   </Button>
                   <Button
                     className={`rounded-full font-bold px-4 h-[34px] ${

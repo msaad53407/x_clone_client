@@ -5,7 +5,7 @@ import { Link, Navigate, useSearchParams, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { resetPasswordSchema, type ResetPasswordValues } from '../schemas/auth.schema';
 import { useAuth } from '@/hooks/use-auth';
@@ -124,8 +124,7 @@ export default function ResetPasswordPage() {
                   <FormItem>
                     <FormLabel>New Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
+                      <PasswordInput
                         placeholder="••••••••"
                         {...field}
                         className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"
@@ -143,8 +142,7 @@ export default function ResetPasswordPage() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
+                      <PasswordInput
                         placeholder="••••••••"
                         {...field}
                         className="bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500"

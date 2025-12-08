@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,6 @@ export function CreatePost() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,11 +71,9 @@ export function CreatePost() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!postContent.trim() && !imageFile) return;
-
-    setIsSubmitting(true);
-    try {
+  // Create tweet mutation
+  const createTweetMutation = useMutation({
+    mutationFn: async ({ content, imageFile }: { content: string; imageFile: File | null }) => {
       let uploadedImageUrl: string | undefined;
 
       // Upload image to Cloudinary if file exists
@@ -90,11 +87,12 @@ export function CreatePost() {
       }
 
       // Create the tweet with uploaded image URL
-      await tweetService.create({
-        content: postContent.trim() || undefined,
+      return tweetService.create({
+        content: content.trim() || undefined,
         image_url: uploadedImageUrl
       });
-
+    },
+    onSuccess: () => {
       // Reset form
       setPostContent('');
       setImagePreview(null);
@@ -105,15 +103,24 @@ export function CreatePost() {
 
       // Refresh the feed
       queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+      queryClient.invalidateQueries({ queryKey: ['userTweets'] });
 
       toast.success('Post created!');
-    } catch (error) {
+    },
+    onError: error => {
       toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
+    },
+    onSettled: () => {
       setIsUploading(false);
     }
+  });
+
+  const handleSubmit = () => {
+    if (!postContent.trim() && !imageFile) return;
+    createTweetMutation.mutate({ content: postContent, imageFile });
   };
+
+  const isSubmitting = createTweetMutation.isPending;
 
   return (
     <div

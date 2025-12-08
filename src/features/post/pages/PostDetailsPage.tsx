@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { PostCard } from '@/features/home/components/PostCard';
 import { Comment } from '../components/Comment';
@@ -23,7 +23,6 @@ export default function PostDetailsPage() {
   const queryClient = useQueryClient();
 
   const [replyText, setReplyText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch tweet data
   const {
@@ -45,44 +44,66 @@ export default function PostDetailsPage() {
 
   const comments = commentsData?.data || [];
 
-  const handleReply = async () => {
-    if (!replyText.trim() || !postId) return;
+  // Helper to invalidate comment-related queries
+  const invalidateCommentQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+    queryClient.invalidateQueries({ queryKey: ['tweet', postId] });
+    queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+  };
 
-    setIsSubmitting(true);
-    try {
-      await commentService.createComment(postId, { content: replyText.trim() });
+  // Create comment mutation
+  const createCommentMutation = useMutation({
+    mutationFn: (content: string) => commentService.createComment(postId!, { content }),
+    onSuccess: () => {
       setReplyText('');
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['tweet', postId] });
-      queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+      invalidateCommentQueries();
       toast.success('Reply posted!');
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!postId) return;
-    try {
-      await commentService.deleteComment(postId, commentId);
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['tweet', postId] });
-    } catch (error) {
+    },
+    onError: error => {
       toast.error(getApiErrorMessage(error));
     }
-  };
+  });
 
-  const handleUpdateComment = async (commentId: string, content: string) => {
-    try {
-      await commentService.updateComment(commentId, { content });
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => commentService.deleteComment(postId!, commentId),
+    onSuccess: () => {
+      invalidateCommentQueries();
+      toast.success('Comment deleted');
+    },
+    onError: error => {
+      toast.error(getApiErrorMessage(error));
+    }
+  });
+
+  // Update comment mutation
+  const updateCommentMutation = useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
+      commentService.updateComment(commentId, { content }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       toast.success('Comment updated');
-    } catch (error) {
+    },
+    onError: error => {
       toast.error(getApiErrorMessage(error));
     }
+  });
+
+  const handleReply = () => {
+    if (!replyText.trim() || !postId) return;
+    createCommentMutation.mutate(replyText.trim());
   };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!postId) return;
+    deleteCommentMutation.mutate(commentId);
+  };
+
+  const handleUpdateComment = (commentId: string, content: string) => {
+    updateCommentMutation.mutate({ commentId, content });
+  };
+
+  const isSubmitting = createCommentMutation.isPending;
 
   const isPostOwner = tweet?.author.id === user?.id;
 

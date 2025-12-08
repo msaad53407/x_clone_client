@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, MoreHorizontal } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
+import { FeedSkeleton, SearchResultsSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserResultCard } from '../components/UserResultCard';
 import { PostCard } from '@/features/home/components/PostCard';
-import { searchService } from '../services/search.service';
-import { SearchResultsSkeleton, FeedSkeleton } from '@/components/skeletons';
+import type { Tweet, UserPublic } from '@/types/api.types';
 import { formatTimeAgo } from '@/utils/formatTime';
-import type { UserPublic, Tweet } from '@/types/api.types';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { UserResultCard } from '../components/UserResultCard';
+import { searchService } from '../services/search.service';
 
 export default function ExplorePage() {
   const navigate = useNavigate();
@@ -72,9 +72,6 @@ export default function ExplorePage() {
             className="w-full pl-10 rounded-full bg-neutral-100 dark:bg-neutral-900 border-none focus-visible:ring-1 focus-visible:ring-blue-500"
           />
         </div>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-800">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
       </div>
 
       {/* Tabs */}
