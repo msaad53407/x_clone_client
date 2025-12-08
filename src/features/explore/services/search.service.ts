@@ -3,8 +3,8 @@
  * Handles user and tweet search operations
  */
 
-import { publicApi } from '@/lib/axios/axiosInstances';
-import type { Tweet, UserPublic, PaginatedResponse, PaginationParams } from '@/types/api.types';
+import privateApi from '@/lib/axios/axiosInstances';
+import type { PaginatedResponse, PaginationParams, Tweet, UserPublic } from '@/types/api.types';
 
 interface SearchParams extends PaginationParams {
   q: string;
@@ -18,7 +18,7 @@ export const searchService = {
    * Search users by username or display name
    */
   searchUsers: async (params: SearchParams): Promise<PaginatedResponse<UserPublic>> => {
-    const response = await publicApi.get<PaginatedResponse<UserPublic>>('/search/users', {
+    const response = await privateApi.get<PaginatedResponse<UserPublic>>('/search/users', {
       params: {
         q: params.q,
         page: params.page || 1,
@@ -32,7 +32,7 @@ export const searchService = {
    * Search tweets by content
    */
   searchTweets: async (params: SearchParams): Promise<PaginatedResponse<Tweet>> => {
-    const response = await publicApi.get<PaginatedResponse<Tweet>>('/search/tweets', {
+    const response = await privateApi.get<PaginatedResponse<Tweet>>('/search/tweets', {
       params: {
         q: params.q,
         page: params.page || 1,

@@ -3,7 +3,7 @@
  * Handles comment operations for tweets
  */
 
-import { privateApi, publicApi } from '@/lib/axios/axiosInstances';
+import { privateApi } from '@/lib/axios/axiosInstances';
 import type { Comment, PaginatedResponse } from '@/types/api.types';
 
 interface CreateCommentRequest {
@@ -26,7 +26,7 @@ export const commentService = {
    * Get comments for a tweet
    */
   getComments: async (tweetId: string, page = 1, limit = 20): Promise<PaginatedResponse<Comment>> => {
-    const response = await publicApi.get<PaginatedResponse<Comment>>(`/tweets/${tweetId}/comments`, {
+    const response = await privateApi.get<PaginatedResponse<Comment>>(`/tweets/${tweetId}/comments`, {
       params: { page, limit }
     });
     return response.data;

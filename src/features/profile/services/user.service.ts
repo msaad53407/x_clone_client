@@ -3,8 +3,8 @@
  * Handles user profile, follow/unfollow, and user data operations
  */
 
-import { privateApi, publicApi } from '@/lib/axios/axiosInstances';
-import type { UserPublic, Tweet, PaginatedResponse, PaginationParams } from '@/types/api.types';
+import { privateApi } from '@/lib/axios/axiosInstances';
+import type { PaginatedResponse, PaginationParams, Tweet, UserPublic } from '@/types/api.types';
 
 interface MessageResponse {
   message: string;
@@ -25,7 +25,7 @@ export const userService = {
    * Get user profile by username
    */
   getByUsername: async (username: string): Promise<UserPublic> => {
-    const response = await publicApi.get<UserPublic>(`/users/${username}`);
+    const response = await privateApi.get<UserPublic>(`/users/${username}`);
     return response.data;
   },
 
@@ -33,7 +33,7 @@ export const userService = {
    * Get user's tweets
    */
   getUserTweets: async (username: string, params?: PaginationParams): Promise<PaginatedResponse<Tweet>> => {
-    const response = await publicApi.get<PaginatedResponse<Tweet>>(`/users/${username}/tweets`, {
+    const response = await privateApi.get<PaginatedResponse<Tweet>>(`/users/${username}/tweets`, {
       params: {
         page: params?.page || 1,
         limit: params?.limit || 20
@@ -70,7 +70,7 @@ export const userService = {
    * Get user's followers
    */
   getFollowers: async (username: string, params?: PaginationParams): Promise<PaginatedResponse<UserPublic>> => {
-    const response = await publicApi.get<PaginatedResponse<UserPublic>>(`/users/${username}/followers`, {
+    const response = await privateApi.get<PaginatedResponse<UserPublic>>(`/users/${username}/followers`, {
       params: {
         page: params?.page || 1,
         limit: params?.limit || 20
@@ -83,7 +83,7 @@ export const userService = {
    * Get users that a user is following
    */
   getFollowing: async (username: string, params?: PaginationParams): Promise<PaginatedResponse<UserPublic>> => {
-    const response = await publicApi.get<PaginatedResponse<UserPublic>>(`/users/${username}/following`, {
+    const response = await privateApi.get<PaginatedResponse<UserPublic>>(`/users/${username}/following`, {
       params: {
         page: params?.page || 1,
         limit: params?.limit || 20

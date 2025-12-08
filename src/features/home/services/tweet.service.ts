@@ -3,8 +3,8 @@
  * Handles all tweet-related API calls
  */
 
-import { privateApi, publicApi } from '@/lib/axios/axiosInstances';
-import type { Tweet, TweetCreateRequest, PaginatedResponse, PaginationParams } from '@/types/api.types';
+import { privateApi } from '@/lib/axios/axiosInstances';
+import type { PaginatedResponse, PaginationParams, Tweet, TweetCreateRequest } from '@/types/api.types';
 
 /**
  * Tweet service object with all tweet-related functions
@@ -30,7 +30,7 @@ export const tweetService = {
    * Get paginated list of tweets
    */
   list: async (params?: PaginationParams): Promise<PaginatedResponse<Tweet>> => {
-    const response = await publicApi.get<PaginatedResponse<Tweet>>('/tweets', {
+    const response = await privateApi.get<PaginatedResponse<Tweet>>('/tweets', {
       params: {
         page: params?.page || 1,
         limit: params?.limit || 20
