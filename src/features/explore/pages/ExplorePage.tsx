@@ -7,23 +7,8 @@ import { Input } from '@/components/ui/input';
 import { UserResultCard } from '../components/UserResultCard';
 import { PostCard } from '@/features/home/components/PostCard';
 import { searchService } from '../services/search.service';
+import { formatTimeAgo } from '@/utils/formatTime';
 import type { UserPublic, Tweet } from '@/types/api.types';
-
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return `${diffSecs}s`;
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
 
 export default function ExplorePage() {
   const navigate = useNavigate();
